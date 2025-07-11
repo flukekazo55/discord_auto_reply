@@ -1,9 +1,12 @@
 import discord
 import httpx
 import os
+from keep_alive import keep_alive
+
+# Start web server for uptime ping
+keep_alive()
 
 # === Setup ===
-TARGET_USER_ID = int(os.environ["TARGET_USER_ID"])
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
 
@@ -13,6 +16,7 @@ intents.messages = True
 intents.guilds = True
 
 client = discord.Client(intents=intents)
+
 
 async def generate_reply(user_msg: str, is_reply=False) -> str:
     try:
@@ -46,9 +50,11 @@ async def generate_reply(user_msg: str, is_reply=False) -> str:
         print("❌ OpenRouter error:", e)
         return "ฉันตอบไม่ได้ตอนนี้ ลองใหม่อีกทีนะ"
 
+
 @client.event
 async def on_ready():
     print(f'✅ Bot logged in as {client.user}')
+
 
 @client.event
 async def on_message(message):
@@ -58,16 +64,16 @@ async def on_message(message):
     should_reply = False
     is_reply = False
 
-    # Check if message mentions your target user
-    if any(m.id == TARGET_USER_ID for m in message.mentions):
+    # ✅ Check if the message mentions THIS bot
+    if client.user in message.mentions:
         should_reply = True
         print(f"[Trigger: Mention] {message.author.name}: {message.content}")
 
-    # Or if message is replying to your message
+    # ✅ Or if replying to THIS bot's message
     elif message.reference:
         try:
             ref_msg = await message.channel.fetch_message(message.reference.message_id)
-            if ref_msg.author.id == TARGET_USER_ID:
+            if ref_msg.author.id == client.user.id:
                 should_reply = True
                 is_reply = True
                 print(f"[Trigger: Reply] {message.author.name}: {message.content}")
@@ -83,5 +89,6 @@ async def on_message(message):
         except Exception as e:
             print("❌ Failed to send reply:", e)
             await message.reply("เกิดข้อผิดพลาดขณะตอบกลับ ลองใหม่อีกครั้งนะ")
+
 
 client.run(DISCORD_BOT_TOKEN)
