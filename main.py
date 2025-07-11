@@ -14,9 +14,15 @@ intents.guilds = True
 
 client = discord.Client(intents=intents)
 
-
-async def generate_reply(user_msg: str) -> str:
+async def generate_reply(user_msg: str, is_reply=False) -> str:
     try:
+        system_prompt = (
+            "คุณเป็นแชทบอทที่พูดจาสั้นๆ ตรงประเด็น และกวนตีนเล็กน้อย "
+            "ไม่ต้องสุภาพมาก ตอบแบบคนอารมณ์ดี กวนแต่ไม่หยาบคาย ใช้ภาษาธรรมดาแบบวัยรุ่นไทย"
+        )
+        if is_reply:
+            system_prompt += " คุณกำลังตอบกลับข้อความที่มีบริบทก่อนหน้า"
+
         async with httpx.AsyncClient() as http:
             response = await http.post(
                 "https://openrouter.ai/api/v1/chat/completions",
@@ -26,59 +32,56 @@ async def generate_reply(user_msg: str) -> str:
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model":
-                    "deepseek/deepseek-r1:free",
-                    "messages": [{
-                        "role":
-                        "system",
-                        "content":
-                        ("คุณเป็นแชทบอทที่พูดจาสั้นๆ ตรงประเด็น และกวนตีนเล็กน้อย "
-                         "ไม่ต้องสุภาพมาก ตอบแบบคนอารมณ์ดี กวนแต่ไม่หยาบคาย ใช้ภาษาธรรมดาแบบวัยรุ่นไทย"
-                         )
-                    }, {
-                        "role": "user",
-                        "content": user_msg
-                    }]
-                })
+                    "model": "deepseek/deepseek-r1:free",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_msg}
+                    ]
+                }
+            )
             result = response.json()
             print("🔍 OpenRouter result:", result)
             return result["choices"][0]["message"]["content"]
     except Exception as e:
-        print("OpenRouter error:", e)
+        print("❌ OpenRouter error:", e)
         return "ฉันตอบไม่ได้ตอนนี้ ลองใหม่อีกทีนะ"
-
 
 @client.event
 async def on_ready():
-    print(f'Bot logged in as {client.user}')
-
+    print(f'✅ Bot logged in as {client.user}')
 
 @client.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    should_reply = any(m.id == TARGET_USER_ID for m in message.mentions)
+    should_reply = False
+    is_reply = False
 
-    if message.reference and not should_reply:
+    # Check if message mentions your target user
+    if any(m.id == TARGET_USER_ID for m in message.mentions):
+        should_reply = True
+        print(f"[Trigger: Mention] {message.author.name}: {message.content}")
+
+    # Or if message is replying to your message
+    elif message.reference:
         try:
-            ref_msg = await message.channel.fetch_message(
-                message.reference.message_id)
-            should_reply = ref_msg.author.id == TARGET_USER_ID
+            ref_msg = await message.channel.fetch_message(message.reference.message_id)
+            if ref_msg.author.id == TARGET_USER_ID:
+                should_reply = True
+                is_reply = True
+                print(f"[Trigger: Reply] {message.author.name}: {message.content}")
         except:
             pass
 
     if should_reply:
         prompt = message.content
-        print(f"[Trigger] {message.author.name}: {prompt}")
-
         try:
             async with message.channel.typing():
-                reply = await generate_reply(prompt)
+                reply = await generate_reply(prompt, is_reply)
             await message.reply(reply)
         except Exception as e:
-            print("Failed to send reply:", e)
+            print("❌ Failed to send reply:", e)
             await message.reply("เกิดข้อผิดพลาดขณะตอบกลับ ลองใหม่อีกครั้งนะ")
-
 
 client.run(DISCORD_BOT_TOKEN)
