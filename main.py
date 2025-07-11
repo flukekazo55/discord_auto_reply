@@ -3,10 +3,10 @@ import httpx
 import os
 from keep_alive import keep_alive
 
-# Start web server for uptime ping
 keep_alive()
 
-# === Setup ===
+# === setup ===
+TARGET_USER_ID = int(os.environ["TARGET_USER_ID"]) 
 OPENROUTER_API_KEY = os.environ["OPENROUTER_API_KEY"]
 DISCORD_BOT_TOKEN = os.environ["DISCORD_BOT_TOKEN"]
 
@@ -22,7 +22,7 @@ async def generate_reply(user_msg: str, is_reply=False) -> str:
     try:
         system_prompt = (
             "คุณเป็นแชทบอทที่พูดจาสั้นๆ ตรงประเด็น และกวนตีนเล็กน้อย "
-            "ไม่ต้องสุภาพมาก ตอบแบบคนอารมณ์ดี กวนแต่ไม่หยาบคาย ใช้ภาษาธรรมดาแบบวัยรุ่นไทย"
+            "ไม่ต้องสุภาพมาก ตอบแบบคนอารมณ์ดี กวนแต่หยาบคาย ใช้ภาษาธรรมดาแบบวัยรุ่นไทย"
         )
         if is_reply:
             system_prompt += " คุณกำลังตอบกลับข้อความที่มีบริบทก่อนหน้า"
@@ -64,19 +64,17 @@ async def on_message(message):
     should_reply = False
     is_reply = False
 
-    # ✅ Check if the message mentions THIS bot
-    if client.user in message.mentions:
+    if any(m.id == TARGET_USER_ID for m in message.mentions):
         should_reply = True
-        print(f"[Trigger: Mention] {message.author.name}: {message.content}")
+        print(f"[Trigger: Mention YOU] {message.author.name}: {message.content}")
 
-    # ✅ Or if replying to THIS bot's message
     elif message.reference:
         try:
             ref_msg = await message.channel.fetch_message(message.reference.message_id)
-            if ref_msg.author.id == client.user.id:
+            if ref_msg.author.id == TARGET_USER_ID:
                 should_reply = True
                 is_reply = True
-                print(f"[Trigger: Reply] {message.author.name}: {message.content}")
+                print(f"[Trigger: Reply to YOU] {message.author.name}: {message.content}")
         except:
             pass
 
