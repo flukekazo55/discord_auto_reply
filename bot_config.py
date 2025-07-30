@@ -1,6 +1,5 @@
 import os
 import discord
-from discord.ext import commands
 from dotenv import load_dotenv
 
 # Load .env file
@@ -18,8 +17,5 @@ intents.messages = True
 intents.guilds = True
 intents.voice_states = True  # Important for TTS/voice features
 
-# Create bot client with command support
-client = commands.Bot(command_prefix="/", intents=intents)
-
-# Slash command tree
-tree = client.tree
+# Create Discord client
+client = discord.Client(intents=intents)
