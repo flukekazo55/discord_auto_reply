@@ -1,52 +1,106 @@
-# 🤖 Discord Auto-Reply Bot with OpenRouter AI (Thai Style)
+# Discord TTS Bot with AI Chat and Voice Support
 
-A Discord chatbot that automatically replies when mentioned or replied to in a thread. It uses the [OpenRouter](https://openrouter.ai/) API to generate fun and smart replies in Thai. The bot also responds via DM when your friend replies to your message in a public channel.
-
----
-
-## 🚀 Features
-
-- 🤖 Auto-reply when someone mentions you or replies to your message
-- 💬 AI responses via OpenRouter (uses `deepseek/deepseek-r1:free`)
-- 📩 Auto DM: Sends "ฟลุ๊คไม่อยู่ แต่เดี๋ยวกลับมาตอบ" when someone replies to your public message
-- 🔄 Keep-alive server to keep Replit project running
-- 🟢 UptimeRobot support (optional)
+This is a Python-based Discord bot that can:
+- Speak Thai text in voice channels using Google TTS (gTTS)
+- Chat with users via OpenRouter AI
+- Show token usage statistics
+- Display individual user chat history
 
 ---
 
-## 🧠 AI Personality (Prompt Style)
-- Funny, friendly, and smart Thai male personality
-- Speaks casually with Thai teen tone
-- Answers questions on science, tech, culture, lifestyle, and more
-- Avoids inappropriate questions politely
+## Features
+
+| Command           | Description                             |
+|------------------|-----------------------------------------|
+| /fping       | Ping test                               |
+| /fchat       | Chat with AI via OpenRouter             |
+| /flimit      | Show current token usage                |
+| /fhistory    | Show chat history for the current user  |
+| /ftts <text> | Speak the given Thai text in voice      |
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
-- Python 3.8+
-- A Discord Bot Token
-- OpenRouter API key
-- Replit account (optional for free deployment)
-
----
-
-## 🔐 Environment Variables (Secrets)
-
-You must define the following secrets (in Replit → Secrets panel or `.env` file locally):
-
+- Python 3.10 or higher
+- Discord bot token
+- ffmpeg installed and in PATH
+- Libraries: `discord.py`, `gTTS`, `PyNaCl`
 
 ---
 
-## 💻 How to Run
+## Installation
 
-### On Replit (Recommended):
-1. Fork or import this repo to your Replit
-2. Set environment variables (Secrets)
-3. Run `main.py`
-4. (Optional) Use [UptimeRobot](https://uptimerobot.com/) to ping your bot's keep-alive URL
+### 1. Clone the repository
 
-### Locally:
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/YOUR_USERNAME/discord_auto_reply.git
+cd discord_auto_reply
+```
+
+### 2. Install Python dependencies
+
+```bash
+pip install -U "discord.py[voice]" gTTS PyNaCl
+```
+
+### 3. Install ffmpeg (Windows)
+
+1. Download the static zip build from: https://www.gyan.dev/ffmpeg/builds/
+2. Choose ffmpeg-release-essentials.zip
+3. Extract to: C:\ffmpeg
+4. Add C:\ffmpeg\bin to your system environment variable PATH
+5. Open a new terminal and test with:
+
+```bash
+ffmpeg -version
+```
+
+You should see version information printed if installation is successful.
+
+### Configuration
+
+Edit the following file:
+bot_config.py
+
+```bash
+DISCORD_BOT_TOKEN = "your_bot_token_here"
+TARGET_USER_ID = 123456789012345678  # Replace with your own Discord user ID
+```
+
+If using /fchat, configure your OpenRouter API key in openrouter.py.
+
+### Running the Bot
+
+In the project directory, run:
+
+```bash
 python main.py
+```
+
+### Usage Example
+Join a voice channel in your Discord server.
+
+In a text channel, type:
+
+```bash
+/ftts Hello
+```
+
+###  Stopping the Bot
+Press Ctrl + C in the terminal
+
+Or close the terminal window
+
+### Project Structure
+
+```bash
+discord_auto_reply/
+├── bot_config.py        # Token and bot instance config
+├── main.py              # Entry point for running the bot
+├── commands.py          # Event and command registration
+├── tts_command.py       # Voice TTS handler
+├── openrouter.py        # AI integration via OpenRouter
+├── log_utils.py         # Chat log saving and history
+├── requirements.txt     # Optional dependency list
+```
