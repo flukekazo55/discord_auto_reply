@@ -58,6 +58,8 @@ ffmpeg -version
 
 You should see version information printed if installation is successful.
 
+---
+
 ### Configuration
 
 Edit the following file:
@@ -70,6 +72,8 @@ TARGET_USER_ID = 123456789012345678  # Replace with your own Discord user ID
 
 If using /fchat, configure your OpenRouter API key in openrouter.py.
 
+---
+
 ### Running the Bot
 
 In the project directory, run:
@@ -77,6 +81,8 @@ In the project directory, run:
 ```bash
 python main.py
 ```
+
+---
 
 ### Usage Example
 Join a voice channel in your Discord server.
@@ -87,10 +93,14 @@ In a text channel, type:
 /ftts Hello
 ```
 
+---
+
 ###  Stopping the Bot
 Press Ctrl + C in the terminal
 
 Or close the terminal window
+
+---
 
 ### Project Structure
 
