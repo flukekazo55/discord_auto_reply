@@ -7,7 +7,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "✅ I'm alive!"
+    return "Keepalive started!"
 
 
 def run():

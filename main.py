@@ -9,4 +9,7 @@ keep_alive()
 register_commands()
 
 # Run the bot
-client.run(DISCORD_BOT_TOKEN)
+try:
+    client.run(DISCORD_BOT_TOKEN)
+except KeyboardInterrupt:
+    print("stopped by user on terminal")

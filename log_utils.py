@@ -27,7 +27,7 @@ def load_chat_history_for_prompt():
                     {"role": "assistant", "content": entry["bot_reply"]}
                 ])
     except Exception as e:
-        print(f"⚠️ Failed to load chat history: {e}")
+        print(f"Failed to load chat history: {e}")
     return history
 
 def get_user_history(user_id, max_entries=5):
@@ -42,4 +42,4 @@ def get_user_history(user_id, max_entries=5):
                         break
     except Exception as e:
         print(f"❌ Failed to get user history: {e}")
-    return history or ["ไม่พบประวัติสำหรับผู้ใช้นี้"]
+    return history or ["No chat history found."]

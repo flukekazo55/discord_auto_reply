@@ -42,8 +42,8 @@ async def generate_reply(user_msg, is_reply=False):
         data = resp.json()
         return data["choices"][0]["message"]["content"]
     except Exception as e:
-        print("❌ OpenRouter error:", e)
-        return "ฉันตอบไม่ได้ตอนนี้ ลองใหม่อีกทีนะ"
+        print("OpenRouter error:", e)
+        return "OpenRouter error"
 
 
 async def get_openrouter_usage():
@@ -53,7 +53,7 @@ async def get_openrouter_usage():
                 "https://openrouter.ai/api/v1/auth/key",
                 headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"})
         data = resp.json()["data"]
-        return f"ใช้งานไปแล้ว: {data['usage']}/{data['limit'] or '∞'} เครดิต"
+        return f"Used: {data['usage']}/{data['limit'] or '∞'} credits"
     except Exception as e:
-        print("❌ OpenRouter usage error:", e)
-        return "⚠️ ไม่สามารถเช็คเครดิตได้ในตอนนี้"
+        print("OpenRouter usage error:", e)
+        return "OpenRouter error:"

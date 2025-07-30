@@ -8,7 +8,7 @@ def register_commands():
 
     @client.event
     async def on_ready():
-        print(f"✅ Bot logged in as {client.user}")
+        print(f"Bot logged in as {client.user}")
 
     @client.event
     async def on_message(message):
@@ -25,40 +25,40 @@ def register_commands():
         mentioned_ids = [user.id for user in message.mentions]
         bot_id = getattr(client.user, 'id', None)
 
-        # 🔔 Ping Test
-        if content.startswith("/fluke_ping"):
+        # Ping Test
+        if content.startswith("/fping"):
             await message.reply("Pong!")
 
-        # 📘 Help
-        elif content.startswith("/fluke_help"):
+        # Help
+        elif content.startswith("/fhelp"):
             await message.reply(
-                "คำสั่ง: /fluke_ping /fluke_chat /fluke_limit /fluke_history /fluke_say <ข้อความภาษาไทย>")
+                "คำสั่ง: /fping /fchat /flimit /fhistory /ftts <message>")
 
-        # 📊 Token usage limit
-        elif content.startswith("/fluke_limit"):
+        # Token usage limit
+        elif content.startswith("/flimit"):
             usage = await get_openrouter_usage()
             await message.reply(usage)
 
-        # 📜 Chat history
-        elif content.startswith("/fluke_history"):
+        # Chat history
+        elif content.startswith("/fhistory"):
             history = get_user_history(user_id)
             await message.reply("\n".join(history))
 
-        # 💬 AI Chat
-        elif content.startswith("/fluke_chat"): 
+        # AI Chat
+        elif content.startswith("/fchat"): 
             await handle_reply(message, user_id, username, content)
 
-        # 🗣️ Text-to-Speech (Replit-safe: sends .mp3 instead of speaking)
-        elif content.startswith("/fluke_say"):
+        # Text-to-Speech (Replit-safe: sends .mp3 instead of speaking)
+        elif content.startswith("/ftts"):
             await handle_tts(message)
             
-        # 🤖 Handle mentions
+        # Handle mentions
         elif bot_id is not None and (TARGET_USER_ID in mentioned_ids or bot_id in mentioned_ids):
             await handle_reply(message, user_id, username, content)
 
 
 async def handle_reply(message, user_id, username, content):
-    print("✅ handle_reply")
+    print("handle_reply")
     async with message.channel.typing():
         reply = await generate_reply(content, is_reply=True)
         save_chat_log(user_id, username, content, reply)
