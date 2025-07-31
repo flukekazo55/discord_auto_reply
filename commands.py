@@ -68,7 +68,7 @@ async def fchat(interaction: discord.Interaction, message: str):
 @app_commands.describe(text="Text to speak (Thai)")
 async def ftts(interaction: discord.Interaction, text: str):
     user = interaction.user.display_name
-    await interaction.response.send_message(f"{user} asked to speak: {text}")
+    await interaction.response.send_message(f"{user}: {text}")
 
     # Wrap message content like a normal message object for handle_tts
     class FakeMessage:
