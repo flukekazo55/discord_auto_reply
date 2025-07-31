@@ -114,3 +114,26 @@ discord_auto_reply/
 ├── log_utils.py         # Chat log saving and history
 ├── requirements.txt     # Optional dependency list
 ```
+
+---
+
+### Packaging to .EXE (Optional for Windows)
+1. Install PyInstaller
+
+```bash
+pip install pyinstaller
+```
+
+2. Build the EXE
+
+```bash
+pyinstaller --onefile --name "discord_bot" main.py
+```
+
+This will generate an .exe file inside the dist/ folder.
+
+3. Run the Bot
+```bash
+cd dist
+./discord_bot.exe
+```
