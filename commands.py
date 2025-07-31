@@ -59,9 +59,27 @@ async def fhistory(interaction: discord.Interaction):
 @tree.command(name="fchat", description="Chat with AI via OpenRouter")
 @app_commands.describe(message="Your message to the AI bot")
 async def fchat(interaction: discord.Interaction, message: str):
+    # Acknowledge interaction immediately to prevent timeout
+    await interaction.response.defer(thinking=True)
+
+    # Generate AI reply
     reply = await generate_reply(message)
+
+    # Save chat log
     save_chat_log(interaction.user.id, str(interaction.user), message, reply)
-    await interaction.response.send_message(reply)
+
+    # Send actual response
+    await interaction.followup.send(reply)
+
+    # Speak reply using TTS
+    class FakeMessage:
+        def __init__(self, interaction, text):
+            self.author = interaction.user
+            self.guild = interaction.guild
+            self.channel = interaction.channel
+            self.content = f"/ftts {text}"
+
+    await handle_tts(FakeMessage(interaction, reply))
 
 
 @tree.command(name="ftts", description="Speak Thai text in your voice channel")
