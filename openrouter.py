@@ -1,6 +1,14 @@
 import httpx
-from bot_config import OPENROUTER_API_KEY
+import os
+from dotenv import load_dotenv
 from log_utils import load_chat_history_for_prompt
+
+
+load_dotenv()
+
+
+def get_openrouter_api_key():
+    return os.getenv("OPENROUTER_API_KEY", "")
 
 
 async def generate_reply(user_msg, is_reply=False):
@@ -24,13 +32,17 @@ async def generate_reply(user_msg, is_reply=False):
 
     history = load_chat_history_for_prompt()
     history.append({"role": "user", "content": user_msg})
+    api_key = get_openrouter_api_key()
+
+    if not api_key:
+        return "Missing OPENROUTER_API_KEY"
 
     try:
         async with httpx.AsyncClient() as http:
             resp = await http.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
@@ -40,6 +52,7 @@ async def generate_reply(user_msg, is_reply=False):
                         "content": prompt
                     }] + history
                 })
+        resp.raise_for_status()
         data = resp.json()
         return data["choices"][0]["message"]["content"]
     except Exception as e:
@@ -48,11 +61,17 @@ async def generate_reply(user_msg, is_reply=False):
 
 
 async def get_openrouter_usage():
+    api_key = get_openrouter_api_key()
+
+    if not api_key:
+        return "Missing OPENROUTER_API_KEY"
+
     try:
         async with httpx.AsyncClient() as http:
             resp = await http.get(
                 "https://openrouter.ai/api/v1/auth/key",
-                headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}"})
+                headers={"Authorization": f"Bearer {api_key}"})
+        resp.raise_for_status()
         data = resp.json()["data"]
         return f"Used: {data['usage']}/{data['limit'] or '∞'} credits"
     except Exception as e:

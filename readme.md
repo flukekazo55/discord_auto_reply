@@ -62,15 +62,17 @@ You should see version information printed if installation is successful.
 
 ### Configuration
 
-Edit the following file:
-bot_config.py
+Configure these environment variables:
 
 ```bash
-DISCORD_BOT_TOKEN = "your_bot_token_here"
-TARGET_USER_ID = 123456789012345678  # Replace with your own Discord user ID
+DISCORD_BOT_TOKEN="your_bot_token_here"
+DISCORD_APPLICATION_ID="your_application_id"
+DISCORD_PUBLIC_KEY="your_public_key"
+OPENROUTER_API_KEY="your_openrouter_key"
+TARGET_USER_ID=123456789012345678
 ```
 
-If using /fchat, configure your OpenRouter API key in openrouter.py.
+You can place those values in a local `.env` file for development, or configure them as environment variables in Vercel.
 
 ---
 
@@ -81,6 +83,50 @@ In the project directory, run:
 ```bash
 python main.py
 ```
+
+---
+
+## Deploying on Vercel
+
+This repository now supports a Vercel deployment through Discord Interactions at the HTTP endpoint served by [api/index.py](api/index.py).
+
+### Important limitations on Vercel
+
+- Mention-based auto replies will not run on Vercel because `on_message` requires a persistent Discord gateway connection.
+- Voice and `/ftts` playback will not run on Vercel because Discord voice connections and `ffmpeg` need a long-lived process.
+- Chat history stored in `chat_log.jsonl` becomes temporary on Vercel because serverless file storage is ephemeral. For persistent history, move logs to a database or Vercel Blob.
+- `/fchat` can still time out on Vercel if OpenRouter responds too slowly for Discord's interaction timeout window. For reliable long AI responses, use a background worker or a persistent host.
+
+### Vercel setup
+
+1. Import the repository into Vercel.
+2. Set these environment variables in the Vercel project:
+
+```bash
+DISCORD_APPLICATION_ID=your_application_id
+DISCORD_PUBLIC_KEY=your_public_key
+DISCORD_BOT_TOKEN=your_bot_token
+OPENROUTER_API_KEY=your_openrouter_key
+TARGET_USER_ID=123456789012345678
+```
+
+3. Deploy.
+4. Set the Discord Interactions URL in the Discord Developer Portal to your Vercel URL, for example `https://your-project.vercel.app/`.
+5. Register slash commands once with:
+
+```bash
+python register_vercel_commands.py
+```
+
+### Commands available on Vercel
+
+- `/fping`
+- `/fhelp`
+- `/flimit`
+- `/fhistory`
+- `/fchat`
+
+`/ftts` returns a limitation message on Vercel instead of joining voice.
 
 ---
 
