@@ -3,7 +3,7 @@ import json
 import os
 
 from dotenv import load_dotenv
-from flask import Flask, abort, jsonify, request
+from flask import Flask, abort, jsonify, render_template_string, request
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 
@@ -19,6 +19,122 @@ PING = 1
 APPLICATION_COMMAND = 2
 PONG = 1
 CHANNEL_MESSAGE_WITH_SOURCE = 4
+
+REQUIRED_ENV_VARS = [
+        "DISCORD_APPLICATION_ID",
+        "DISCORD_PUBLIC_KEY",
+        "DISCORD_BOT_TOKEN",
+]
+
+HEALTHCHECK_TEMPLATE = """
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Discord Bot Health</title>
+        <style>
+            :root {
+                color-scheme: light;
+                --bg: #f4efe6;
+                --panel: #fffaf2;
+                --text: #1e1e1e;
+                --muted: #625d52;
+                --ok: #1f7a4d;
+                --warn: #b25d00;
+                --border: #dccfb8;
+            }
+            body {
+                margin: 0;
+                font-family: Georgia, "Times New Roman", serif;
+                background: radial-gradient(circle at top, #fff7ea, var(--bg));
+                color: var(--text);
+            }
+            .wrap {
+                max-width: 760px;
+                margin: 48px auto;
+                padding: 0 20px;
+            }
+            .panel {
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: 18px;
+                padding: 28px;
+                box-shadow: 0 16px 40px rgba(70, 52, 24, 0.08);
+            }
+            h1 {
+                margin: 0 0 10px;
+                font-size: 2rem;
+            }
+            p {
+                color: var(--muted);
+                line-height: 1.5;
+            }
+            .badge {
+                display: inline-block;
+                margin: 12px 0 18px;
+                padding: 8px 12px;
+                border-radius: 999px;
+                font-weight: 700;
+            }
+            .badge.ok {
+                background: rgba(31, 122, 77, 0.12);
+                color: var(--ok);
+            }
+            .badge.warn {
+                background: rgba(178, 93, 0, 0.12);
+                color: var(--warn);
+            }
+            ul {
+                padding-left: 20px;
+            }
+            li {
+                margin: 8px 0;
+            }
+            code {
+                background: rgba(30, 30, 30, 0.06);
+                padding: 2px 6px;
+                border-radius: 6px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <div class="panel">
+                <h1>Discord Bot Health Check</h1>
+                <div class="badge {{ 'ok' if ready else 'warn' }}">{{ 'READY' if ready else 'CONFIG INCOMPLETE' }}</div>
+                <p>This Vercel app serves Discord Interactions over HTTP. It does not run the long-lived Discord gateway or voice features.</p>
+                <p><strong>Mode:</strong> {{ mode }}</p>
+                <p><strong>Health endpoint:</strong> <code>/health</code></p>
+                {% if missing_vars %}
+                <p><strong>Missing environment variables:</strong></p>
+                <ul>
+                    {% for item in missing_vars %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p>Required Discord environment variables are present.</p>
+                {% endif %}
+            </div>
+        </div>
+    </body>
+</html>
+"""
+
+
+def get_missing_env_vars():
+        return [name for name in REQUIRED_ENV_VARS if not os.getenv(name)]
+
+
+def build_health_payload():
+        missing_vars = get_missing_env_vars()
+        return {
+                "status": "ready" if not missing_vars else "config-incomplete",
+                "ready": not missing_vars,
+                "mode": "vercel-discord-interactions",
+                "missing_env_vars": missing_vars,
+        }
 
 
 def get_public_key():
@@ -76,12 +192,13 @@ def respond(content):
 
 @app.route("/", methods=["GET"])
 def healthcheck():
-    return jsonify(
-        {
-            "status": "ok",
-            "mode": "vercel-discord-interactions",
-        }
-    )
+    payload = build_health_payload()
+    return render_template_string(HEALTHCHECK_TEMPLATE, **payload)
+
+
+@app.route("/health", methods=["GET"])
+def healthcheck_json():
+    return jsonify(build_health_payload())
 
 
 @app.route("/", methods=["POST"])
