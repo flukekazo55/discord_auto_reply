@@ -29,7 +29,7 @@ def save_chat_log(user_id, username, user_msg, bot_reply):
     with LOG_FILE_PATH.open("a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
-def load_chat_history_for_prompt():
+def load_chat_history_for_prompt(max_messages=20):
     history = []
     try:
         with LOG_FILE_PATH.open("r", encoding="utf-8") as f:
@@ -41,7 +41,9 @@ def load_chat_history_for_prompt():
                 ])
     except Exception as e:
         print(f"Failed to load chat history: {e}")
-    return history
+    # Only keep the most recent messages so the prompt stays small (fewer tokens,
+    # less chance of hitting provider rate limits).
+    return history[-max_messages:]
 
 def get_user_history(user_id, max_entries=5):
     history = []

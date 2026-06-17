@@ -1,11 +1,29 @@
 from bot_config import client, tree, TARGET_USER_ID
-from openrouter import generate_reply, get_openrouter_usage
+from ai import generate_reply, get_usage
 from log_utils import save_chat_log, get_user_history
 from dota_commands import handle_dota_command
 from tts_command import handle_tts
 
 import discord
 from discord import app_commands
+
+
+class _VoiceMessage:
+    """Adapts a slash-command interaction into the message-like object that
+    handle_tts expects.
+
+    It resolves the *cached* guild member instead of using interaction.user
+    directly: interaction.user can be a partial member whose .voice is None, so
+    the cached member is what actually carries the user's current voice state.
+    """
+
+    def __init__(self, interaction, text):
+        guild = interaction.guild
+        member = guild.get_member(interaction.user.id) if guild else None
+        self.author = member or interaction.user
+        self.guild = guild
+        self.channel = interaction.channel
+        self.content = f"/ftts {text}"
 
 
 def register_commands():
@@ -46,7 +64,7 @@ async def fhelp(interaction: discord.Interaction):
 
 @tree.command(name="flimit", description="Show token usage")
 async def flimit(interaction: discord.Interaction):
-    usage = await get_openrouter_usage()
+    usage = await get_usage()
     await interaction.response.send_message(usage)
 
 
@@ -56,7 +74,7 @@ async def fhistory(interaction: discord.Interaction):
     await interaction.response.send_message("\n".join(history))
 
 
-@tree.command(name="fchat", description="Chat with AI via OpenRouter")
+@tree.command(name="fchat", description="Chat with AI")
 @app_commands.describe(message="Your message to the AI bot")
 async def fchat(interaction: discord.Interaction, message: str):
     # Acknowledge interaction immediately to prevent timeout
@@ -72,14 +90,7 @@ async def fchat(interaction: discord.Interaction, message: str):
     await interaction.followup.send(reply)
 
     # Speak reply using TTS
-    class FakeMessage:
-        def __init__(self, interaction, text):
-            self.author = interaction.user
-            self.guild = interaction.guild
-            self.channel = interaction.channel
-            self.content = f"/ftts {text}"
-
-    await handle_tts(FakeMessage(interaction, reply))
+    await handle_tts(_VoiceMessage(interaction, reply))
 
 
 @tree.command(name="ftts", description="Speak Thai text in your voice channel")
@@ -89,14 +100,7 @@ async def ftts(interaction: discord.Interaction, text: str):
     await interaction.response.send_message(f"{user}: {text}")
 
     # Wrap message content like a normal message object for handle_tts
-    class FakeMessage:
-        def __init__(self, interaction, text):
-            self.author = interaction.user
-            self.guild = interaction.guild
-            self.channel = interaction.channel
-            self.content = f"/ftts {text}"
-
-    await handle_tts(FakeMessage(interaction, text))
+    await handle_tts(_VoiceMessage(interaction, text))
 
 
 

@@ -4,7 +4,7 @@ A Python Discord bot (discord.py) that runs as an **always-on gateway bot**:
 
 - Shows **online** in your server
 - Speaks Thai text in voice channels via Google TTS + ffmpeg (`/ftts`)
-- Chats with users via OpenRouter AI (`/fchat`, and `@mention` auto-reply)
+- Chats with users via AI (`/fchat`, and `@mention` auto-reply) — Groq by default, any OpenAI-compatible provider
 - Dota meta / counter lookups (`/fdm`, `/fdc`)
 - Token usage and per-user chat history
 
@@ -20,9 +20,9 @@ A Python Discord bot (discord.py) that runs as an **always-on gateway bot**:
 |--------------------|------------------------------------------|
 | `/fping`           | Ping test                                |
 | `/fhelp`           | Show command list                        |
-| `/fchat <message>` | Chat with AI via OpenRouter (also speaks)|
+| `/fchat <message>` | Chat with AI (also speaks)                |
 | `/ftts <text>`     | Speak Thai text in your voice channel    |
-| `/flimit`          | Show OpenRouter token usage              |
+| `/flimit`          | Show AI provider rate-limit / quota       |
 | `/fhistory`        | Show your chat history                   |
 | `/fdm`             | Dota meta picks by position              |
 | `/fdc <hero>`      | Dota counters for a hero                 |
@@ -37,8 +37,10 @@ Render dashboard for deployment — see `.env.example`):
 
 ```bash
 DISCORD_BOT_TOKEN=your_bot_token_here
-OPENROUTER_API_KEY=your_openrouter_key
 TARGET_USER_ID=123456789012345678   # user whose @mentions trigger auto-reply
+AI_API_KEY=your_ai_api_key          # Groq key from https://console.groq.com/keys
+AI_MODEL=llama-3.3-70b-versatile
+AI_BASE_URL=https://api.groq.com/openai/v1
 ```
 
 Enable the **Message Content Intent** for your bot in the
@@ -113,7 +115,8 @@ discord_auto_reply/
 ├── bot_config.py      # Env loading + Discord client/intents
 ├── commands.py        # Slash commands + on_message auto-reply
 ├── tts_command.py     # Voice TTS (gTTS + ffmpeg)
-├── openrouter.py      # OpenRouter AI integration
+├── ai.py              # AI provider integration (OpenAI-compatible)
+├── system_prompt.txt  # Bot persona / system prompt (edit freely)
 ├── dota_commands.py   # Dota meta/counter scraping
 ├── log_utils.py       # Chat log + history
 ├── keep_alive.py      # Tiny Flask server for host health check / uptime ping

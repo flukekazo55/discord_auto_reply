@@ -15,7 +15,6 @@ def _get_int_env(name, default=None):
 
 # Load runtime configuration from environment variables.
 TARGET_USER_ID = _get_int_env("TARGET_USER_ID")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "")
 DISCORD_APPLICATION_ID = os.getenv("DISCORD_APPLICATION_ID", "")
 DISCORD_PUBLIC_KEY = os.getenv("DISCORD_PUBLIC_KEY", "")
