@@ -27,19 +27,20 @@ provide.
 
 ```
 discord_auto_reply/
-├── api/
-│   ├── index.go          # Vercel entrypoint: health page + Discord interactions
-│   └── index_test.go     # Handler tests (signature verify, routing, health)
 ├── cmd/
+│   ├── server/           # HTTP server entrypoint Vercel builds & runs
 │   └── register/         # One-time slash-command registration CLI
 ├── internal/
+│   ├── handler/          # HTTP handler: health page + Discord interactions
 │   ├── discord/          # Ed25519 request verification + interaction types
 │   ├── openrouter/       # OpenRouter chat-completion + usage API
 │   ├── chatlog/          # JSONL chat history (ephemeral /tmp on Vercel)
 │   └── envload/          # Minimal .env loader for local dev
-├── go.mod
-└── vercel.json           # Routes all requests to api/index.go
+└── go.mod
 ```
+
+Vercel's Go runtime detects `cmd/server/main.go` as a web server, builds it, and
+proxies all requests to it — no `vercel.json` is needed.
 
 The bot uses only the Go standard library — there are no third-party
 dependencies.
@@ -62,8 +63,8 @@ OPENROUTER_API_KEY=your_openrouter_key
 
 ## Deploying on Vercel
 
-1. Import the repository into Vercel. Vercel auto-detects the Go function under
-   `api/`.
+1. Import the repository into Vercel. Vercel auto-detects the Go web server at
+   `cmd/server/main.go`.
 2. Add the environment variables above in **Settings → Environment Variables**.
 3. Deploy.
 4. In the [Discord Developer Portal](https://discord.com/developers/applications),
@@ -107,8 +108,8 @@ go build ./...
 # Run tests
 go test ./...
 
-# Run the bot locally with the Vercel CLI (reads .env)
-vercel dev
+# Run the server locally (reads .env, listens on $PORT, default 3000)
+go run ./cmd/server
 ```
 
 ---

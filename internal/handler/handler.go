@@ -1,13 +1,11 @@
-// Package handler is the Vercel serverless entrypoint. Vercel's Go runtime
-// invokes the exported Handler for every request routed to this file.
-//
-// It serves two things:
+// Package handler implements the bot's HTTP surface:
 //   - GET /        a human-readable health page;  GET /health  the same as JSON.
 //   - POST /       the Discord Interactions endpoint (verified, then routed).
 //
-// Gateway-only features from the original bot (voice TTS, @mention auto-replies)
-// are intentionally absent: they require a long-lived process and cannot run on
-// serverless infrastructure.
+// It is mounted by the server entrypoint in cmd/server. Gateway-only features
+// from the original bot (voice TTS, @mention auto-replies) are intentionally
+// absent: they require a long-lived gateway connection and ffmpeg, which this
+// HTTP-only deployment does not provide.
 package handler
 
 import (
@@ -35,7 +33,7 @@ func init() {
 	envload.Load(".env")
 }
 
-// Handler is the single entrypoint Vercel calls.
+// Handler routes every incoming HTTP request by method.
 func Handler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodGet:
