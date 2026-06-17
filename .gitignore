@@ -1,44 +1,24 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environment
-venv/
-env/
-.venv/
-.env/
-
-# dotenv environment variables
+# Environment variables
+.env
 *.env
 
-# PyInstaller
-dist/
-build/
-*.spec
+# Go build artifacts
+/bin/
+*.exe
+*.test
+*.out
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# Vercel
+.vercel/
 
-# VSCode settings
+# Editor / OS
 .vscode/
-
-# System files
+.idea/
 .DS_Store
 Thumbs.db
-
-# Logs
-*.log
-
-# Mac/Linux/Windows hidden files
 *.swp
 *~
-.nfs*
 
-# Cache
-.cache/
-*.egg-info/
-
-# Optional: chat logs
+# Local chat log
+chat_log.jsonl
 chat_logs/

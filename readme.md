@@ -1,162 +1,119 @@
-# Discord TTS Bot with AI Chat and Voice Support
+# Discord AI Chat Bot (Go + Vercel)
 
-This is a Python-based Discord bot that can:
-- Speak Thai text in voice channels using Google TTS (gTTS)
-- Chat with users via OpenRouter AI
-- Show token usage statistics
-- Display individual user chat history
+A Discord bot served as a **Vercel Go serverless function** over the Discord
+Interactions HTTP API. It answers slash commands and chats via OpenRouter AI.
 
----
-
-## Features
-
-| Command           | Description                             |
-|------------------|-----------------------------------------|
-| /fping       | Ping test                               |
-| /fchat       | Chat with AI via OpenRouter             |
-| /flimit      | Show current token usage                |
-| /fhistory    | Show chat history for the current user  |
-| /ftts <text> | Speak the given Thai text in voice      |
+This is a Go port of the original Python bot, scoped to what can actually run on
+Vercel. Gateway-only features (voice TTS, `@mention` auto-replies) were removed
+because they need a long-lived process and `ffmpeg`, which serverless cannot
+provide.
 
 ---
 
-## Requirements
+## Commands
 
-- Python 3.10 or higher
-- Discord bot token
-- ffmpeg installed and in PATH
-- Libraries: `discord.py`, `gTTS`, `PyNaCl`
+| Command           | Description                                   |
+|-------------------|-----------------------------------------------|
+| `/fping`          | Ping test                                     |
+| `/fhelp`          | Show command list                             |
+| `/flimit`         | Show OpenRouter credit usage                  |
+| `/fhistory`       | Show your recent chat history                 |
+| `/fchat <message>`| Chat with AI via OpenRouter                   |
+| `/ftts <text>`    | Returns a "not supported on Vercel" message   |
 
 ---
 
-## Installation
+## Project structure
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/YOUR_USERNAME/discord_auto_reply.git
-cd discord_auto_reply
+```
+discord_auto_reply/
+├── api/
+│   ├── index.go          # Vercel entrypoint: health page + Discord interactions
+│   └── index_test.go     # Handler tests (signature verify, routing, health)
+├── cmd/
+│   └── register/         # One-time slash-command registration CLI
+├── internal/
+│   ├── discord/          # Ed25519 request verification + interaction types
+│   ├── openrouter/       # OpenRouter chat-completion + usage API
+│   ├── chatlog/          # JSONL chat history (ephemeral /tmp on Vercel)
+│   └── envload/          # Minimal .env loader for local dev
+├── go.mod
+└── vercel.json           # Routes all requests to api/index.go
 ```
 
-### 2. Install Python dependencies
-
-```bash
-pip install -U "discord.py[voice]" gTTS PyNaCl
-```
-
-### 3. Install ffmpeg (Windows)
-
-1. Download the static zip build from: https://www.gyan.dev/ffmpeg/builds/
-2. Choose ffmpeg-release-essentials.zip
-3. Extract to: C:\ffmpeg
-4. Add C:\ffmpeg\bin to your system environment variable PATH
-5. Open a new terminal and test with:
-
-```bash
-ffmpeg -version
-```
-
-You should see version information printed if installation is successful.
+The bot uses only the Go standard library — there are no third-party
+dependencies.
 
 ---
 
-### Configuration
+## Configuration
 
-Configure these environment variables:
-
-```bash
-DISCORD_BOT_TOKEN="your_bot_token_here"
-DISCORD_APPLICATION_ID="your_application_id"
-DISCORD_PUBLIC_KEY="your_public_key"
-OPENROUTER_API_KEY="your_openrouter_key"
-TARGET_USER_ID=123456789012345678
-```
-
-You can place those values in a local `.env` file for development, or configure them as environment variables in Vercel.
-
----
-
-### Running the Bot
-
-In the project directory, run:
-
-```bash
-python main.py
-```
-
----
-
-## Deploying on Vercel
-
-This repository now supports a Vercel deployment through Discord Interactions at the HTTP endpoint served by [api/index.py](api/index.py).
-
-### Important limitations on Vercel
-
-- Mention-based auto replies will not run on Vercel because `on_message` requires a persistent Discord gateway connection.
-- Voice and `/ftts` playback will not run on Vercel because Discord voice connections and `ffmpeg` need a long-lived process.
-- Chat history stored in `chat_log.jsonl` becomes temporary on Vercel because serverless file storage is ephemeral. For persistent history, move logs to a database or Vercel Blob.
-- `/fchat` can still time out on Vercel if OpenRouter responds too slowly for Discord's interaction timeout window. For reliable long AI responses, use a background worker or a persistent host.
-
-### Vercel setup
-
-1. Import the repository into Vercel.
-2. Set these environment variables in the Vercel project:
+Set these environment variables (in Vercel project settings, or a local `.env`
+file for development):
 
 ```bash
 DISCORD_APPLICATION_ID=your_application_id
 DISCORD_PUBLIC_KEY=your_public_key
 DISCORD_BOT_TOKEN=your_bot_token
 OPENROUTER_API_KEY=your_openrouter_key
-TARGET_USER_ID=123456789012345678
 ```
 
+---
+
+## Deploying on Vercel
+
+1. Import the repository into Vercel. Vercel auto-detects the Go function under
+   `api/`.
+2. Add the environment variables above in **Settings → Environment Variables**.
 3. Deploy.
-4. Set the Discord Interactions URL in the Discord Developer Portal to your Vercel URL, for example `https://your-project.vercel.app/`.
-5. Register slash commands once with:
+4. In the [Discord Developer Portal](https://discord.com/developers/applications),
+   set the **Interactions Endpoint URL** to your deployment, e.g.
+   `https://your-project.vercel.app/`. Discord sends a signed PING to verify it;
+   the handler must already be deployed with `DISCORD_PUBLIC_KEY` set.
+5. Register the slash commands once:
 
-```bash
-python register_vercel_commands.py
-```
+   ```bash
+   go run ./cmd/register
+   ```
 
-### Commands available on Vercel
+### Health check
 
-- `/fping`
-- `/fhelp`
-- `/flimit`
-- `/fhistory`
-- `/fchat`
-
-`/ftts` returns a limitation message on Vercel instead of joining voice.
+- `GET /`        → human-readable health page (shows missing env vars)
+- `GET /health`  → JSON status payload
 
 ---
 
-### Usage Example
-Join a voice channel in your Discord server.
+## Limitations on Vercel
 
-In a text channel, type:
+- **No voice / TTS.** Discord voice connections and `ffmpeg` need a long-lived
+  process. `/ftts` returns an explanatory message.
+- **No `@mention` auto-replies.** Those require a persistent Discord gateway
+  connection, which serverless cannot hold open.
+- **Ephemeral history.** Chat logs are written to `/tmp` and are wiped on cold
+  starts and redeploys. For durable history, move `internal/chatlog` to a
+  database or Vercel KV/Blob.
+- **`/fchat` timeouts.** Discord expects an interaction response within ~3s. A
+  slow OpenRouter model can exceed that. For reliable long responses, use a
+  deferred response with a follow-up webhook from a persistent worker.
+
+---
+
+## Local development
 
 ```bash
-/ftts Hello
+# Build everything
+go build ./...
+
+# Run tests
+go test ./...
+
+# Run the bot locally with the Vercel CLI (reads .env)
+vercel dev
 ```
 
 ---
 
-###  Stopping the Bot
-Press Ctrl + C in the terminal
+## Stopping / removing
 
-Or close the terminal window
-
----
-
-### Project Structure
-
-```bash
-discord_auto_reply/
-├── bot_config.py        # Token and bot instance config
-├── main.py              # Entry point for running the bot
-├── commands.py          # Event and command registration
-├── tts_command.py       # Voice TTS handler
-├── openrouter.py        # AI integration via OpenRouter
-├── log_utils.py         # Chat log saving and history
-├── requirements.txt     # Optional dependency list
-```
+Delete the project from Vercel, or remove the Interactions Endpoint URL in the
+Discord Developer Portal to stop routing interactions to it.
