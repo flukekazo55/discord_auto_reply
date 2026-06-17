@@ -13,8 +13,10 @@ import (
 	"encoding/json"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/flukekazo55/discord_auto_reply/internal/chatlog"
 	"github.com/flukekazo55/discord_auto_reply/internal/discord"
@@ -95,8 +97,11 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 // ---- Discord Interactions ----
 
 func handleInteractions(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
+		log.Printf("interaction: read body failed: %v", err)
 		http.Error(w, "cannot read body", http.StatusBadRequest)
 		return
 	}
@@ -105,29 +110,39 @@ func handleInteractions(w http.ResponseWriter, r *http.Request) {
 	signature := r.Header.Get("X-Signature-Ed25519")
 	timestamp := r.Header.Get("X-Signature-Timestamp")
 
-	if publicKey == "" || signature == "" || timestamp == "" ||
-		!discord.Verify(publicKey, signature, timestamp, body) {
+	hasSig := signature != "" && timestamp != ""
+	log.Printf("interaction: received bodyLen=%d hasSig=%t pubKeyLen=%d",
+		len(body), hasSig, len(publicKey))
+
+	if publicKey == "" || !hasSig || !discord.Verify(publicKey, signature, timestamp, body) {
+		log.Printf("interaction: REJECTED invalid signature (took %s)", time.Since(start))
 		http.Error(w, "invalid request signature", http.StatusUnauthorized)
 		return
 	}
 
 	var interaction discord.Interaction
 	if err := json.Unmarshal(body, &interaction); err != nil {
+		log.Printf("interaction: bad payload: %v", err)
 		http.Error(w, "invalid interaction payload", http.StatusBadRequest)
 		return
 	}
 
 	if interaction.Type == discord.TypePing {
+		log.Printf("interaction: PING -> PONG (took %s)", time.Since(start))
 		writeJSON(w, http.StatusOK, map[string]int{"type": discord.ResponsePong})
 		return
 	}
 
 	if interaction.Type != discord.TypeApplicationCommand {
+		log.Printf("interaction: unsupported type=%d (took %s)", interaction.Type, time.Since(start))
 		respond(w, "Unsupported interaction type.")
 		return
 	}
 
-	respond(w, routeCommand(r.Context(), &interaction))
+	reply := routeCommand(r.Context(), &interaction)
+	log.Printf("interaction: command=%q replyLen=%d (took %s)",
+		interaction.Data.Name, len(reply), time.Since(start))
+	respond(w, reply)
 }
 
 // routeCommand dispatches a slash command to its handler and returns the reply
