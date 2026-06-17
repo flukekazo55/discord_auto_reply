@@ -2,14 +2,18 @@
 .env
 *.env
 
-# Go build artifacts
-/bin/
-*.exe
-*.test
-*.out
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
 
-# Vercel
-.vercel/
+# Local chat log + generated TTS audio
+chat_log.jsonl
+chat_logs/
+tts_*.mp3
 
 # Editor / OS
 .vscode/
@@ -19,6 +23,5 @@ Thumbs.db
 *.swp
 *~
 
-# Local chat log
-chat_log.jsonl
-chat_logs/
+# Logs
+*.log

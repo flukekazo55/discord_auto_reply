@@ -1,0 +1,13 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.env
+.env
+.venv/
+venv/
+env/
+chat_log.jsonl
+chat_logs/
+readme.md
+*.bat

@@ -1,0 +1,22 @@
+# Render infrastructure-as-code. Importing this repo on Render will detect it
+# and create the service below. You still set the secret env var VALUES in the
+# Render dashboard (they are marked sync:false so they are never committed).
+#
+# This runs as a *web* service (free tier) so the keep-alive HTTP server keeps
+# the bot reachable. Free web services sleep after ~15 min of no traffic, so add
+# an external pinger (e.g. UptimeRobot) hitting the public URL every 5 minutes —
+# see readme.md.
+services:
+  - type: web
+    name: discord-auto-reply
+    runtime: docker
+    plan: free
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: TARGET_USER_ID
+        sync: false

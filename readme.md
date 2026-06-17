@@ -1,25 +1,107 @@
-# Discord AI Chat Bot (Go + Vercel)
+# Discord TTS Bot with AI Chat and Voice
 
-A Discord bot served as a **Vercel Go serverless function** over the Discord
-Interactions HTTP API. It answers slash commands and chats via OpenRouter AI.
+A Python Discord bot (discord.py) that runs as an **always-on gateway bot**:
 
-This is a Go port of the original Python bot, scoped to what can actually run on
-Vercel. Gateway-only features (voice TTS, `@mention` auto-replies) were removed
-because they need a long-lived process and `ffmpeg`, which serverless cannot
-provide.
+- Shows **online** in your server
+- Speaks Thai text in voice channels via Google TTS + ffmpeg (`/ftts`)
+- Chats with users via OpenRouter AI (`/fchat`, and `@mention` auto-reply)
+- Dota meta / counter lookups (`/fdm`, `/fdc`)
+- Token usage and per-user chat history
+
+> Hosting note: this is a long-lived gateway bot, so it needs an **always-on
+> host** (here: Render via Docker). It cannot run on serverless platforms like
+> Vercel — those can't keep the persistent Discord connection or run ffmpeg.
 
 ---
 
 ## Commands
 
-| Command           | Description                                   |
-|-------------------|-----------------------------------------------|
-| `/fping`          | Ping test                                     |
-| `/fhelp`          | Show command list                             |
-| `/flimit`         | Show OpenRouter credit usage                  |
-| `/fhistory`       | Show your recent chat history                 |
-| `/fchat <message>`| Chat with AI via OpenRouter                   |
-| `/ftts <text>`    | Returns a "not supported on Vercel" message   |
+| Command            | Description                              |
+|--------------------|------------------------------------------|
+| `/fping`           | Ping test                                |
+| `/fhelp`           | Show command list                        |
+| `/fchat <message>` | Chat with AI via OpenRouter (also speaks)|
+| `/ftts <text>`     | Speak Thai text in your voice channel    |
+| `/flimit`          | Show OpenRouter token usage              |
+| `/fhistory`        | Show your chat history                   |
+| `/fdm`             | Dota meta picks by position              |
+| `/fdc <hero>`      | Dota counters for a hero                 |
+| `@mention` the bot | AI auto-reply                            |
+
+---
+
+## Configuration
+
+Set these environment variables (a local `.env` file for development, or the
+Render dashboard for deployment — see `.env.example`):
+
+```bash
+DISCORD_BOT_TOKEN=your_bot_token_here
+OPENROUTER_API_KEY=your_openrouter_key
+TARGET_USER_ID=123456789012345678   # user whose @mentions trigger auto-reply
+```
+
+Enable the **Message Content Intent** for your bot in the
+[Discord Developer Portal](https://discord.com/developers/applications)
+(Bot → Privileged Gateway Intents) — required for `@mention` auto-replies.
+
+---
+
+## Run locally
+
+Requires Python 3.11+ and **ffmpeg** on your PATH (for voice).
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+Or with Docker (ffmpeg included):
+
+```bash
+docker build -t discord-bot .
+docker run --env-file .env discord-bot
+```
+
+---
+
+## Deploy on Render
+
+This repo ships a `Dockerfile` (installs ffmpeg + Opus) and `render.yaml`.
+
+1. Push the repo to GitHub.
+2. On [Render](https://render.com): **New → Web Service** → connect this repo.
+   Render detects the `Dockerfile` / `render.yaml` automatically (Runtime:
+   Docker, Plan: Free).
+3. In **Environment**, add the three variables above.
+4. Deploy. When it boots you'll see `Bot logged in as ...` in the logs and the
+   bot goes **online** in Discord.
+
+### Keep it awake (free tier)
+
+Render's **free web service sleeps after ~15 minutes** of no inbound traffic,
+which would disconnect the bot. The included keep-alive HTTP server (it answers
+`GET /`) lets an external pinger hold it open:
+
+1. Copy your Render service URL, e.g. `https://discord-auto-reply.onrender.com`.
+2. Create a free monitor at [UptimeRobot](https://uptimerobot.com) (or
+   cron-job.org) that does an **HTTP(s)** request to that URL every **5 minutes**.
+
+That keeps the service — and therefore the bot — running 24/7 for free.
+
+> Prefer not to use a pinger? Switch the service to a **Background Worker**
+> (in `render.yaml` set `type: worker` and remove `healthCheckPath`). Workers
+> never sleep, but are a paid plan.
+
+---
+
+## Notes
+
+- Voice playback writes a temporary `tts_<guild>.mp3` and deletes it after
+  playing.
+- Chat history is stored in `chat_log.jsonl`. On Render's ephemeral disk this
+  resets on each deploy/restart; attach a Render Disk or use a database if you
+  need it to persist.
 
 ---
 
@@ -27,94 +109,15 @@ provide.
 
 ```
 discord_auto_reply/
-├── cmd/
-│   ├── server/           # HTTP server entrypoint Vercel builds & runs
-│   └── register/         # One-time slash-command registration CLI
-├── internal/
-│   ├── handler/          # HTTP handler: health page + Discord interactions
-│   ├── discord/          # Ed25519 request verification + interaction types
-│   ├── openrouter/       # OpenRouter chat-completion + usage API
-│   ├── chatlog/          # JSONL chat history (ephemeral /tmp on Vercel)
-│   └── envload/          # Minimal .env loader for local dev
-└── go.mod
+├── main.py            # Entry point: keep-alive server + run bot
+├── bot_config.py      # Env loading + Discord client/intents
+├── commands.py        # Slash commands + on_message auto-reply
+├── tts_command.py     # Voice TTS (gTTS + ffmpeg)
+├── openrouter.py      # OpenRouter AI integration
+├── dota_commands.py   # Dota meta/counter scraping
+├── log_utils.py       # Chat log + history
+├── keep_alive.py      # Tiny Flask server for host health check / uptime ping
+├── requirements.txt
+├── Dockerfile         # ffmpeg + Opus + deps (for Render)
+└── render.yaml        # Render service definition
 ```
-
-Vercel's Go runtime detects `cmd/server/main.go` as a web server, builds it, and
-proxies all requests to it — no `vercel.json` is needed.
-
-The bot uses only the Go standard library — there are no third-party
-dependencies.
-
----
-
-## Configuration
-
-Set these environment variables (in Vercel project settings, or a local `.env`
-file for development):
-
-```bash
-DISCORD_APPLICATION_ID=your_application_id
-DISCORD_PUBLIC_KEY=your_public_key
-DISCORD_BOT_TOKEN=your_bot_token
-OPENROUTER_API_KEY=your_openrouter_key
-```
-
----
-
-## Deploying on Vercel
-
-1. Import the repository into Vercel. Vercel auto-detects the Go web server at
-   `cmd/server/main.go`.
-2. Add the environment variables above in **Settings → Environment Variables**.
-3. Deploy.
-4. In the [Discord Developer Portal](https://discord.com/developers/applications),
-   set the **Interactions Endpoint URL** to your deployment, e.g.
-   `https://your-project.vercel.app/`. Discord sends a signed PING to verify it;
-   the handler must already be deployed with `DISCORD_PUBLIC_KEY` set.
-5. Register the slash commands once:
-
-   ```bash
-   go run ./cmd/register
-   ```
-
-### Health check
-
-- `GET /`        → human-readable health page (shows missing env vars)
-- `GET /health`  → JSON status payload
-
----
-
-## Limitations on Vercel
-
-- **No voice / TTS.** Discord voice connections and `ffmpeg` need a long-lived
-  process. `/ftts` returns an explanatory message.
-- **No `@mention` auto-replies.** Those require a persistent Discord gateway
-  connection, which serverless cannot hold open.
-- **Ephemeral history.** Chat logs are written to `/tmp` and are wiped on cold
-  starts and redeploys. For durable history, move `internal/chatlog` to a
-  database or Vercel KV/Blob.
-- **`/fchat` timeouts.** Discord expects an interaction response within ~3s. A
-  slow OpenRouter model can exceed that. For reliable long responses, use a
-  deferred response with a follow-up webhook from a persistent worker.
-
----
-
-## Local development
-
-```bash
-# Build everything
-go build ./...
-
-# Run tests
-go test ./...
-
-# Run the server locally (reads .env, listens on $PORT, default 3000)
-go run ./cmd/server
-```
-
----
-
-## Stopping / removing
-
-Delete the project from Vercel, or remove the Interactions Endpoint URL in the
-Discord Developer Portal to stop routing interactions to it.
